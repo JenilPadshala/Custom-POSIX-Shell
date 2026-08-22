@@ -57,11 +57,10 @@ void custom_cd(char** args, int arg_count) {
     // handle 'cd -' to switch to previous directory
     else if (std::strcmp(args[1], "-") == 0) {
         if (std::strlen(prev_dir) == 0) {
-            const char* err = "cd: OLDPWD not set\n";
-            write(2, err, std::strlen(err));
-            return;
+            target_dir = shell_home;
+        } else {
+            target_dir = prev_dir;
         }
-        target_dir = prev_dir;
         // standard behavior for `cd -` is to print the directory it switches to
         write(1, target_dir, std::strlen(target_dir));
         write(1, "\n", 1);
