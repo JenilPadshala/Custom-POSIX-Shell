@@ -1,0 +1,12 @@
+.DS_Store
+*.o
+*.d
+*.exe
+*.exe.manifest
+*.exe.manifest.res
+*.exe.manifest.res.manifest
+*.exe.manifest.res.manifest.res
+*.exe.manifest.res.manifest.res.manifest
+*.exe.manifest.res.manifest.res.manifest.res
+*.exe.manifest.res.manifest.res.manifest.res.manifest
+shell
