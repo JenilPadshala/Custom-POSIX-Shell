@@ -1,5 +1,6 @@
 #include "../include/prompt.h"
 #include "../include/utils.h"
+#include "../include/builtins.h"
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -13,15 +14,13 @@ int main() {
 
     while (true) {
         display_prompt();
-
         // get user input
-
         // if EOF, print a newline and break (Ctrl+D)
         if (std::fgets(input_buffer, sizeof(input_buffer), stdin) == nullptr) {
             write(1, "\n", 1);
             break;
         }
-
+        
         // strip trailing '\n' so that tokenization does not treat \n as part of the last argument.
         size_t len = std::strlen(input_buffer);
         if (len > 0 && input_buffer[len - 1] == '\n') {
@@ -53,8 +52,12 @@ int main() {
                 char debug_msg[1024];
                 int debug_len = std::snprintf(debug_msg, sizeof(debug_msg), "Command to execute: %s (Total args: %d)\n", args[0], arg_count);
                 if (debug_len > 0) write(1, debug_msg, static_cast<size_t>(debug_len));
-
-                // TODO: Step 2 - Route args[0] 
+                // try to execute builtin CMDs
+                if(!execute_builtin(args, arg_count)){
+                    // not a builtin cmd, so use execvp to execute the command
+                    const char* msg = "Will implement soon...\n";
+                    write(1, msg, std::strlen(msg));
+                }
             }
 
             // free the args array returned by tokenize

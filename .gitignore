@@ -10,3 +10,5 @@
 *.exe.manifest.res.manifest.res.manifest.res
 *.exe.manifest.res.manifest.res.manifest.res.manifest
 shell
+*.swp
+shell.dSYM
