@@ -1,3 +1,4 @@
+#include "../include/prompt.h"
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstdio>
@@ -10,7 +11,10 @@ void sigchld_handler(int) {
     int status;
     pid_t pid;
     while((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        printf("Terminated bg process with PID: [%d]\n", pid);
+        printf("\nTerminated bg process with PID: [%d]\n", pid);
+        display_prompt();
+        // flush stdout to ensure prompt is displayed
+        fflush(stdout);
     }
 }
 
