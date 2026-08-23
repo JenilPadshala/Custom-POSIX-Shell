@@ -1,6 +1,7 @@
 #include "../include/prompt.h"
 #include "../include/utils.h"
 #include "../include/builtins.h"
+#include "../include/processes.h"
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -8,6 +9,7 @@
 
 int main() {
     init_shell();
+    init_process_handling();
 
     // buffer for user input
     char input_buffer[4096];
@@ -49,14 +51,13 @@ int main() {
             if (args != nullptr && arg_count > 0) {
 
                 // TEMPORARY: print parsed command so tokenizer can be checked
-                char debug_msg[1024];
-                int debug_len = std::snprintf(debug_msg, sizeof(debug_msg), "Command to execute: %s (Total args: %d)\n", args[0], arg_count);
-                if (debug_len > 0) write(1, debug_msg, static_cast<size_t>(debug_len));
+                // char debug_msg[1024];
+                // int debug_len = std::snprintf(debug_msg, sizeof(debug_msg), "Command to execute: %s (Total args: %d)\n", args[0], arg_count);
+                // if (debug_len > 0) write(1, debug_msg, static_cast<size_t>(debug_len));
                 // try to execute builtin CMDs
                 if(!execute_builtin(args, arg_count)){
                     // not a builtin cmd, so use execvp to execute the command
-                    const char* msg = "Will implement soon...\n";
-                    write(1, msg, std::strlen(msg));
+                    execute_system_command(args, arg_count);
                 }
             }
 
