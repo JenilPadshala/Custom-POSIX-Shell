@@ -1,6 +1,7 @@
 #include "../include/builtins.h"
 #include "../include/prompt.h"
 #include "../include/ls.h"
+#include "../include/pinfo.h"
 #include <unistd.h>
 #include <cstdio>
 #include <cstring>
@@ -98,6 +99,9 @@ bool execute_builtin(char** args, int arg_count) {
         return true;
     } else if (std::strcmp(args[0], "ls") == 0) {
         execute_ls(args, arg_count);
+        return true;
+    } else if (std::strcmp(args[0], "pinfo") == 0) {
+        execute_pinfo(args, arg_count);
         return true;
     }
 
