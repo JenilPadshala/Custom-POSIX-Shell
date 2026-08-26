@@ -1,6 +1,6 @@
 #include "../include/prompt.h"
 #include "../include/utils.h"
-#include "../include/builtins.h"
+#include "../include/pipeline.h"
 #include "../include/processes.h"
 #include "../include/redirection.h"
 #include <cstdio>
@@ -44,29 +44,30 @@ int main() {
 
         // process each command
         for (int i = 0; i < command_count; ++i) {
-            int arg_count = 0;
-            // split each command on spaces/tabs so extra whitespace is ignored (e.g. "ls    -l" still becomes argv ["ls", "-l"]).
-            char** args = tokenize(commands[i], " \t", arg_count);
+            execute_pipeline(commands[i]);
+            // int arg_count = 0;
+            // // split each command on spaces/tabs so extra whitespace is ignored (e.g. "ls    -l" still becomes argv ["ls", "-l"]).
+            // char** args = tokenize(commands[i], " \t", arg_count);
 
-            // if command is not empty, process it
-            if (args != nullptr && arg_count > 0) {
+            // // if command is not empty, process it
+            // if (args != nullptr && arg_count > 0) {
 
-                // TEMPORARY: print parsed command so tokenizer can be checked
-                // char debug_msg[1024];
-                // int debug_len = std::snprintf(debug_msg, sizeof(debug_msg), "Command to execute: %s (Total args: %d)\n", args[0], arg_count);
-                // if (debug_len > 0) write(1, debug_msg, static_cast<size_t>(debug_len));
-                // try to execute builtin CMDs
-                // if(!execute_builtin(args, arg_count)){
-                //     // not a builtin cmd, so use redirection to handle the command; execute_system_command moved into redirection.cpp
-                //     execute_with_redirection(args, arg_count);
-                // }
-                execute_with_redirection(args, arg_count);
-            }
+            //     // TEMPORARY: print parsed command so tokenizer can be checked
+            //     // char debug_msg[1024];
+            //     // int debug_len = std::snprintf(debug_msg, sizeof(debug_msg), "Command to execute: %s (Total args: %d)\n", args[0], arg_count);
+            //     // if (debug_len > 0) write(1, debug_msg, static_cast<size_t>(debug_len));
+            //     // try to execute builtin CMDs
+            //     // if(!execute_builtin(args, arg_count)){
+            //     //     // not a builtin cmd, so use redirection to handle the command; execute_system_command moved into redirection.cpp
+            //     //     execute_with_redirection(args, arg_count);
+            //     // }
+            //     execute_with_redirection(args, arg_count);
+            // }
 
-            // free the args array returned by tokenize
-            if (args != nullptr) {
-                delete[] args;
-            }
+            // // free the args array returned by tokenize
+            // if (args != nullptr) {
+            //     delete[] args;
+            // }
         }
         delete[] commands;
     }

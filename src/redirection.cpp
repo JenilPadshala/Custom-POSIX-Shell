@@ -103,7 +103,7 @@ void execute_with_redirection(char** args, int arg_count) {
     dup2(orig_stdin, STDIN_FILENO);
     dup2(orig_stdout, STDOUT_FILENO);
     
-    // close the duplicates to prevent file descriptor leaks
+    // close the duplicates to prevent fd leaks
     close(orig_stdin);
     close(orig_stdout);
 }
