@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -g -Iinclude
+CXXFLAGS = -Wall -Wextra -Iinclude
 
 SRC_DIR = src
 INC_DIR = include
