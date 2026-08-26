@@ -18,7 +18,7 @@ int main() {
     while (true) {
         display_prompt();
         // get user input
-        // if EOF, print a newline and break (Ctrl+D)
+        // if logout, print a newline and break (Ctrl+D)
         if (std::fgets(input_buffer, sizeof(input_buffer), stdin) == nullptr) {
             write(1, "\n", 1);
             break;

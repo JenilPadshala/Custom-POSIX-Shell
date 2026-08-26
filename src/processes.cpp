@@ -24,14 +24,63 @@ void sigchld_handler(int) {
     }
 }
 
-// initialize process handling
+// handle SIGINT (Ctrl+C)
+void sigint_handler(int) {
+    // check if there is a valid fg prcs running
+    if(current_fg_pid != -1) {
+        // send SIGINT to the current fg prcs
+        kill(current_fg_pid, SIGINT);
+        write(1, "\n", 1);
+    } else {
+        // if no prcs running, just print a new line and a fresh prompt
+        write(1, "\n", 1);
+        display_prompt();
+        fflush(stdout);
+    }
+}
+
+//!!! handle SIGTSTP (Ctrl+Z)
+void sigtstp_handler(int) {
+    // check if there is a valid fg prcs running
+    if(current_fg_pid != -1) {
+        // send SIGTSTP to suspend the current fg prcs
+        kill(current_fg_pid, SIGTSTP);
+        write(1, "\n", 1);
+    } else {
+        // if no prcs running, just print a new line and a fresh prompt
+        write(1, "\n", 1);
+        display_prompt();
+        fflush(stdout);
+    }
+}
+
+// initialize prcs handling
 void init_process_handling() {
-    struct sigaction sa;
-    sa.sa_handler = sigchld_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-    if(sigaction(SIGCHLD, &sa, nullptr) == -1){
+    // create separate sigaction structs for each signal
+    struct sigaction sa_chld, sa_int, sa_tstp;
+
+    // setup SIGCHLD handler
+    sa_chld.sa_handler = sigchld_handler;
+    sigemptyset(&sa_chld.sa_mask);
+    sa_chld.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+    if(sigaction(SIGCHLD, &sa_chld, nullptr) == -1){
         perror("Error: sigaction failed");
+    }
+
+    // setup SIGINT (Ctrl+C) handler
+    sa_int.sa_handler = sigint_handler;
+    sigemptyset(&sa_int.sa_mask);
+    sa_int.sa_flags = SA_RESTART;
+    if (sigaction(SIGINT, &sa_int, nullptr) == -1) {
+        perror("Error: sigaction failed for SIGINT");
+    }
+
+    // setup SIGTSTP (Ctrl+Z) handler
+    sa_tstp.sa_handler = sigtstp_handler;
+    sigemptyset(&sa_tstp.sa_mask);
+    sa_tstp.sa_flags = SA_RESTART;
+    if (sigaction(SIGTSTP, &sa_tstp, nullptr) == -1) {
+        perror("Error: sigaction failed for SIGTSTP");
     }
 }
 
