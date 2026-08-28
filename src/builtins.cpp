@@ -3,6 +3,7 @@
 #include "../include/ls.h"
 #include "../include/pinfo.h"
 #include "../include/search.h"
+#include "../include/history.h"
 #include <unistd.h>
 #include <cstdio>
 #include <cstring>
@@ -106,6 +107,9 @@ bool execute_builtin(char** args, int arg_count) {
         return true;
     } else if (std::strcmp(args[0], "search") == 0) {
         execute_search(args, arg_count);
+        return true;
+    } else if (std::strcmp(args[0], "history") == 0) {
+        execute_history(args, arg_count);
         return true;
     }
 

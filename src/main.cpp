@@ -3,6 +3,7 @@
 #include "../include/pipeline.h"
 #include "../include/processes.h"
 #include "../include/redirection.h"
+#include "../include/history.h"
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -34,6 +35,9 @@ int main() {
         if (std::strlen(input_buffer) == 0) {
             continue;
         }
+
+        // add the command to the history
+        add_to_history(input_buffer);
 
         // split on ';' first so that "cmd1; cmd2" runs as two independent commands in one line.
         int command_count = 0;

@@ -12,3 +12,4 @@
 shell
 *.swp
 shell.dSYM
+.shell_history
