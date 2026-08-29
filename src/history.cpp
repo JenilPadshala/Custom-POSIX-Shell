@@ -29,7 +29,7 @@ void add_to_history(const char* command) {
 
 // function to display the history of commands
 void execute_history(char** args, int arg_count) {
-    int num_to_display = MAX_HISTORY; 
+    int num_to_display = 10; 
 
     // parse the optional <num> argument
     if (arg_count == 2) {
