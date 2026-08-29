@@ -4,6 +4,7 @@
 #include "../include/processes.h"
 #include "../include/redirection.h"
 #include "../include/history.h"
+#include "../include/raw_input.h"
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -20,15 +21,19 @@ int main() {
         display_prompt();
         // get user input
         // if logout, print a newline and break (Ctrl+D)
-        if (std::fgets(input_buffer, sizeof(input_buffer), stdin) == nullptr) {
+        // if (std::fgets(input_buffer, sizeof(input_buffer), stdin) == nullptr) {
+        //     write(1, "\n", 1);
+        //     break;
+        // }
+        
+        // // strip trailing '\n' so that tokenization does not treat \n as part of the last argument.
+        // size_t len = std::strlen(input_buffer);
+        // if (len > 0 && input_buffer[len - 1] == '\n') {
+        //     input_buffer[len - 1] = '\0';
+        // }
+        if(!read_raw_input(input_buffer, sizeof(input_buffer))){
             write(1, "\n", 1);
             break;
-        }
-        
-        // strip trailing '\n' so that tokenization does not treat \n as part of the last argument.
-        size_t len = std::strlen(input_buffer);
-        if (len > 0 && input_buffer[len - 1] == '\n') {
-            input_buffer[len - 1] = '\0';
         }
 
         // if empty line, reprint the prompt
