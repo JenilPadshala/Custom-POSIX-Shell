@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <cstdlib>
+#include <dirent.h>
 
 struct termios orig_termios;
 
@@ -65,7 +66,46 @@ bool read_raw_input(char* buffer, int max_len) {
                 write(STDOUT_FILENO, "\b \b", 3); // \b moves back one char, space clears it, then \b moves back again
             }
         } else if (c == 9) { // tab
-            // TODO: implement auto-complete here
+            // find where the current word starts (track back to the last space)
+            int word_start = pos;
+            while (word_start > 0 && buffer[word_start - 1] != ' ') {
+                word_start--;
+            }
+            
+            // extract the prefix the user is currently typing
+            int prefix_len = pos - word_start;
+            if (prefix_len > 0) {
+                char prefix[256];
+                std::strncpy(prefix, &buffer[word_start], prefix_len);
+                prefix[prefix_len] = '\0';
+                
+                // open the current directory to look for matches
+                DIR* dir = opendir(".");
+                if (dir != nullptr) {
+                    struct dirent* entry;
+                    while ((entry = readdir(dir)) != nullptr) {
+                        // skip hidden "." and ".." directories
+                        if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) {
+                            continue;
+                        }
+                        
+                        // if a file starts with our prefix, auto-complete it!
+                        if (std::strncmp(entry->d_name, prefix, prefix_len) == 0) {
+                            const char* missing_part = entry->d_name + prefix_len;
+                            int missing_len = std::strlen(missing_part);
+                            
+                            // make sure it fits in our buffer
+                            if (pos + missing_len < max_len - 1) {
+                                std::strcpy(&buffer[pos], missing_part);
+                                pos += missing_len;
+                                redraw_line(buffer);
+                            }
+                            break; // stop after finding the first match
+                        }
+                    }
+                    closedir(dir);
+                }
+            }
         } else if (c == '\033') { // escape sequence (arrows)
             // handle arrow keys
             char seq[3];
