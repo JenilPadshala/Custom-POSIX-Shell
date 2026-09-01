@@ -89,3 +89,11 @@ So when the user presses the TAB key (ASCII value 9):
 - Up/Down Arrows: 
   - The raw mode engine listens for ANSI escape sequences (`\033[A` and `\033[B`). 
   - It cycles through a loaded array of recent commands, utilizing the `\33[2K\r` escape sequence to dynamically clear the terminal line and redraw the prompt with the requested history state without generating new terminal lines.
+
+## Compilation and Execution:
+I have provided a Makefile to compile and execute the shell.
+```
+make # to compile the shell
+./shell # to run the shell
+make clean # to clean the compiled files
+```
