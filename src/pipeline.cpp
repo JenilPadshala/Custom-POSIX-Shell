@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <new>
+#include <signal.h>
 
 void execute_pipeline(char* raw_command) {
     int pipe_count = 0;
@@ -45,6 +46,13 @@ void execute_pipeline(char* raw_command) {
             return;
         }
     }
+
+    // mask SIGCHLD
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, nullptr);
+
 
     pid_t pid;
     // iterate through each command segment in the pipeline
@@ -98,6 +106,9 @@ void execute_pipeline(char* raw_command) {
     for (int i = 0; i < pipe_count; ++i) {
         wait(nullptr);
     }
+
+    // unblock SIGCHLD
+    sigprocmask(SIG_UNBLOCK, &mask, nullptr);
 
     delete[] pipe_segments;
     delete[] pipefds;

@@ -96,6 +96,13 @@ void execute_system_command(char** args, int argc) {
         is_background = true;
         args[argc - 1] = nullptr; // remove the & from the arguments so that it is not passed to execvp
     }
+
+    // mask SIGCHLD
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, nullptr);
+
     // fork a new process
     pid_t pid = fork();
 
@@ -105,7 +112,8 @@ void execute_system_command(char** args, int argc) {
     }
     if (pid == 0) {
         // child process code
-
+        // unblock SIGCHLD
+        sigprocmask(SIG_UNBLOCK, &mask, nullptr);
         // if it is background process, put it in its own process group
         if(is_background) {
             setpgid(0, 0);
@@ -121,10 +129,14 @@ void execute_system_command(char** args, int argc) {
         if(is_background) {
             // print pid of background process
             printf("Started bg process with PID: [%d]\n", pid);
+            // unblock SIGCHLD
+            sigprocmask(SIG_UNBLOCK, &mask, nullptr);
         }
         else {
             // set current_fg_pid to the pid of the foreground process
             current_fg_pid = pid;
+            // unblock SIGCHLD
+            sigprocmask(SIG_UNBLOCK, &mask, nullptr);
             int status;
             waitpid(pid, &status, WUNTRACED);
             // reset current_fg_pid once the fg process is terminated
