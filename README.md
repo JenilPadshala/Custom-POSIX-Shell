@@ -28,7 +28,7 @@ Following are the files corresponding to each of the features:
 | 8     | Pipelines                                                                              | `include/pipeline.h`, `src/pipeline.cpp`                                                                                                |
 | 9     | Redirection with pipeline                                                              | `src/pipeline.cpp` calls `execute_with_redirection()` per segment (`src/redirection.cpp`)                                               |
 | 10    | Signals: Ctrl+Z (stop FG), Ctrl+C (`SIGINT` to FG), Ctrl+D (logout of this shell only) | Ctrl+Z / Ctrl+C: `src/processes.cpp`; Ctrl+D: `src/raw_input.cpp`                                                                       |
-| 11    | TAB autocomplete for commands and names in the current directory                       | `include/raw_input.h`, `src/raw_input.cpp`                                                                                              |
+| 11    | TAB autocomplete for commands and names in the current directory                       | `include/autocomplete.h`, `src/autocomplete.cpp` (routed through `raw_input.cpp`)                                                                                              |
 | 12    | `history`                                                                              | `include/history.h`, `src/history.cpp`; arrow keys in `src/raw_input.cpp`                                                               |
 ## Features Implementation Overview:
 ### 1. Prompt:
@@ -79,10 +79,14 @@ I have used `sigaction()` to override the default behaviour of the following sig
 `Ctrl+D` (`EOF`): Logs out of the shell only. Captured within the raw input loop in `src/raw_input.cpp` as an ASCII value of 4.
 ### 11. TAB autocomplete:
 The shell operates in Non-Canonical (RAW) mode via `<termios.h>` to intercept keypresses instantly.
-So when the user presses the TAB key (ASCII value 9):
-- The shell extracts the current string prefix.
-- It scans the current directory using `opendir()` and collects matches.
-- If utilizes Longest Common Prefix (LCP) logic to auto-fill the text. If multiple matches exist, it lists them for the user to choose from.
+So when the user presses the TAB key (ASCII value 9), the `handle_autocomplete()` function in `src/autocomplete.cpp` is called:
+- It extracts the current string prefix.
+- It checks if the prefix is a command or a filename/dir_name.
+- If it is a command, it checks if the command exists in the PATH environment variable.
+- If it is a filename/dir_name, it scans the current directory using `opendir()` and collects matches.
+- If multiple matches exist, it lists them for the user to choose from.
+- If only one match exists, it automatically fills the text.
+- If no matches exist, it does nothing.
 ### 12. History & Arrow Key Navigation:
 - Commands are logged to a `.shell_history` file using `fopen()`, `fprintf()`, and `fclose()` (stores at max 20 commands).
 - The `history <num>` command is implemented to display the last `num` commands from the history (capped at max 10).
