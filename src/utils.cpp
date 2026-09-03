@@ -25,12 +25,47 @@ char** tokenize(char* str, const char* delim, int& token_count) {
     }
 
     token_count = 0;
-    // tokenize the string
-    char* token = std::strtok(str, delim);
-    while (token != nullptr && token_count < MAX_TOKENS - 1) {
-        // store pointers into str, not copies so the caller must keep str alive.
-        tokens[token_count++] = token;
-        token = std::strtok(nullptr, delim);
+
+    // ADDED LOGIC FOR HANDLING DOUBLE QUOTES (FOR ECHO) 
+    
+    bool in_quotes = false; // flag to track if we are inside quotation marks
+    char* token_start = nullptr; // pointer to mark the beginning of the current token
+    char* read_ptr = str; // pointer to read the original string
+    char* write_ptr = str; // pointer to overwrite the string in-place
+    
+    // determine if we are tokenizing command arguments (spaces/tabs)
+    bool is_space_delim = (std::strchr(delim, ' ') != nullptr);
+
+    // iterate through the string until the null terminator is reached
+    while (*read_ptr != '\0') {
+        // toggle quote state, but DO NOT skip the character so it is printed
+        if (is_space_delim && *read_ptr == '"') {
+            in_quotes = !in_quotes; // flip the boolean flag
+        }
+
+        // if we hit a delimiter and we are NOT safely inside quotes
+        if (!in_quotes && std::strchr(delim, *read_ptr) != nullptr) {
+            if (token_start != nullptr) { // if we were tracking a valid token
+                *write_ptr = '\0'; // null-terminate the token in-place
+                if (token_count < MAX_TOKENS - 1) { // bounds check to prevent array overflow
+                    tokens[token_count++] = token_start; // store the pointer in the array
+                }
+                token_start = nullptr; // reset token start for the next one
+                write_ptr++; // advance write pointer past the null terminator
+            }
+        } else {
+            // keep copying characters (now includes quotes AND locked spaces)
+            if (token_start == nullptr) token_start = write_ptr; // mark start if this is a new token
+            *write_ptr = *read_ptr; // copy character from read to write location
+            write_ptr++; // advance write pointer
+        }
+        read_ptr++; // advance read pointer
+    }
+
+    // capture the final token if the string didn't end with a delimiter
+    if (token_start != nullptr && token_count < MAX_TOKENS - 1) {
+        *write_ptr = '\0'; // safely null-terminate the end of the string
+        tokens[token_count++] = token_start; // store the final token
     }
 
     // trailing nullptr so the list is execvp-ready because execvp requires nullptr to terminate the list.
