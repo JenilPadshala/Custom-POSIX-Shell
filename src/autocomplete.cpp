@@ -1,3 +1,4 @@
+
 #include "../include/autocomplete.h"
 #include "../include/raw_input.h"
 #include <cstdlib>
@@ -5,142 +6,162 @@
 #include <dirent.h>
 #include <unistd.h>
 
-// Custom function to sort matches alphabetically without using <algorithm>
+// custom function to sort matches alphabetically
 void sort_matches(char matches[][256], int count) {
-    char temp[256]; // Temporary buffer for swapping strings
-    for (int i = 0; i < count - 1; i++) { // Outer loop for bubble sort
-        for (int j = 0; j < count - i - 1; j++) { // Inner loop to compare adjacent elements
-            if (std::strcmp(matches[j], matches[j + 1]) > 0) { // If the current string is alphabetically greater
-                std::strcpy(temp, matches[j]); // Copy current to temp
-                std::strcpy(matches[j], matches[j + 1]); // Overwrite current with next
-                std::strcpy(matches[j + 1], temp); // Overwrite next with temp
+    char temp[256];
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            if (std::strcmp(matches[j], matches[j + 1]) > 0) {
+                std::strcpy(temp, matches[j]);
+                std::strcpy(matches[j], matches[j + 1]);
+                std::strcpy(matches[j + 1], temp);
             }
         }
     }
 }
 
+// custom function to handle autocomplete
 void handle_autocomplete(char* buffer, int& pos, int max_len) {
-    // look for the beginning of the current word
     int word_start = pos;
-    while(word_start > 0 && buffer[word_start - 1] != ' ') word_start--;        // traverse backwards until a space is found
+    while (word_start > 0 && buffer[word_start - 1] != ' ') word_start--;
+    // determine if the word is a command or a file/directory
+    bool is_command = (word_start == 0);
+    int token_len = pos - word_start;
+    if (token_len == 0) return;
 
-    bool is_command = (word_start == 0); // if no space found, the word is a command
-    int prefix_len = pos - word_start; // len of the prefix that user has typed so
-    if(prefix_len == 0) return; // if no prefix, do nothing and return
+    char token[256];
+    std::strncpy(token, &buffer[word_start], token_len);
+    token[token_len] = '\0';
 
-    // store the prefix in a char array
-    char prefix[256]; 
-    std::strncpy(prefix, &buffer[word_start], prefix_len); 
-    prefix[prefix_len] = '\0';
-
-    // store matching filenames/dir_names/commands in an array
     char matches[100][256];
     int match_count = 0;
 
-    if(!is_command){
-        // if the user is typing a filename/dir_name
-        DIR* dir = opendir(".");
-        if(dir != nullptr){
+    // For non-commands, separate the directory path from the file prefix
+    char search_dir[256] = ".";
+    const char* file_prefix = token;
+
+    if (!is_command) {
+        char* last_slash = std::strrchr(token, '/');
+        if (last_slash != nullptr) {
+            int dir_len = last_slash - token;
+            if (dir_len == 0) {
+                // Root directory: e.g., "/pr"
+                std::strcpy(search_dir, "/");
+            } else {
+                std::strncpy(search_dir, token, dir_len);
+                search_dir[dir_len] = '\0';
+            }
+            file_prefix = last_slash + 1;
+        }
+
+        int prefix_len = std::strlen(file_prefix);
+
+        DIR* dir = opendir(search_dir);
+        if (dir != nullptr) {
             struct dirent* entry;
-            while((entry = readdir(dir)) != nullptr && match_count < 100){
-                if(std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) continue; // skip hidden "." and ".." directories
-                if(std::strncmp(entry->d_name, prefix, prefix_len) == 0){ // if filename/dir_name starts with prefix
-                    std::strcpy(matches[match_count], entry->d_name); // copy the filename/dir_name to the matches array
+            while ((entry = readdir(dir)) != nullptr && match_count < 100) {
+                if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) continue;
+                if (std::strncmp(entry->d_name, file_prefix, prefix_len) == 0) {
+                    std::strcpy(matches[match_count], entry->d_name);
                     match_count++;
                 }
             }
             closedir(dir);
         }
-    } else { // If the user is typing a command
-        const char* path_env = std::getenv("PATH"); // Fetch the PATH environment variable
-        if (path_env != nullptr) { // Ensure PATH is not null
-            char path_copy[4096]; // Allocate a buffer to copy PATH (since strtok modifies the string)
-            std::strncpy(path_copy, path_env, 4095); // Safely copy PATH into the buffer
-            path_copy[4095] = '\0'; // Null-terminate the copied PATH
-            
-            char* saveptr; // Pointer required for reentrant strtok_r
-            char* dir_path = strtok_r(path_copy, ":", &saveptr); // Tokenize the PATH string by colon delimiter
-            
-            while (dir_path != nullptr) { // Loop through each directory in the PATH
-                DIR* dir = opendir(dir_path); // Open the current PATH directory
-                if (dir != nullptr) { // If the directory exists and opened successfully
-                    struct dirent* entry; // Declare a directory entry pointer
-                    while ((entry = readdir(dir)) != nullptr && match_count < 100) { // Loop through files in this directory
-                        if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) continue; // Skip hidden dirs
-                        if (std::strncmp(entry->d_name, prefix, prefix_len) == 0) { // If the executable matches the prefix
-                            bool duplicate = false; // Flag to check if we already recorded this command
-                            for (int i = 0; i < match_count; i++) { // Loop through existing matches
-                                if (std::strcmp(matches[i], entry->d_name) == 0) { // Compare names
-                                    duplicate = true; // Mark as duplicate if found
-                                    break; // Stop searching inner loop
+    } else {
+        int prefix_len = token_len;
+        const char* path_env = std::getenv("PATH");
+        if (path_env != nullptr) {
+            char path_copy[4096];
+            std::strncpy(path_copy, path_env, 4095);
+            path_copy[4095] = '\0';
+
+            char* saveptr;
+            char* dir_path = strtok_r(path_copy, ":", &saveptr);
+
+            while (dir_path != nullptr) {
+                DIR* dir = opendir(dir_path);
+                if (dir != nullptr) {
+                    struct dirent* entry;
+                    while ((entry = readdir(dir)) != nullptr && match_count < 100) {
+                        if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) continue;
+                        if (std::strncmp(entry->d_name, token, prefix_len) == 0) {
+                            bool duplicate = false;
+                            for (int i = 0; i < match_count; i++) {
+                                if (std::strcmp(matches[i], entry->d_name) == 0) {
+                                    duplicate = true;
+                                    break;
                                 }
                             }
-                            if (!duplicate) { // If it is not a duplicate match
-                                std::strcpy(matches[match_count], entry->d_name); // Add it to the matches array
-                                match_count++; // Increment match counter
+                            if (!duplicate) {
+                                std::strcpy(matches[match_count], entry->d_name);
+                                match_count++;
                             }
                         }
                     }
-                    closedir(dir); // Close the current PATH directory
+                    closedir(dir);
                 }
-                dir_path = strtok_r(nullptr, ":", &saveptr); // Grab the next directory from the tokenized PATH
+                dir_path = strtok_r(nullptr, ":", &saveptr);
             }
         }
-        
-        const char* builtins[] = {"cd", "history", "search", "pinfo", "echo", "pwd", "ls", "exit"}; // Array of internal shell commands
-        int num_builtins = 8; // Hardcode the number of builtins in the array
-        for (int i = 0; i < num_builtins && match_count < 100; i++) { // Loop through builtins
-            if (std::strncmp(builtins[i], prefix, prefix_len) == 0) { // Check if builtin matches the prefix
-                bool duplicate = false; // Duplicate flag
-                for (int j = 0; j < match_count; j++) { // Check if already stored (unlikely, but safe)
-                    if (std::strcmp(matches[j], builtins[i]) == 0) duplicate = true; // Mark duplicate
+
+        const char* builtins[] = {"cd", "history", "search", "pinfo", "echo", "pwd", "ls", "exit"};
+        int num_builtins = 8;
+        for (int i = 0; i < num_builtins && match_count < 100; i++) {
+            if (std::strncmp(builtins[i], token, prefix_len) == 0) {
+                bool duplicate = false;
+                for (int j = 0; j < match_count; j++) {
+                    if (std::strcmp(matches[j], builtins[i]) == 0) duplicate = true;
                 }
-                if (!duplicate) { // If unique
-                    std::strcpy(matches[match_count], builtins[i]); // Add builtin to matches
-                    match_count++; // Increment match counter
+                if (!duplicate) {
+                    std::strcpy(matches[match_count], builtins[i]);
+                    match_count++;
                 }
             }
         }
     }
 
-    if (match_count == 0) return; // If absolutely nothing matched, return and do nothing
+    if (match_count == 0) return;
 
-    if (match_count == 1) { // If there is exactly one perfect match
-        int missing_len = std::strlen(matches[0]) - prefix_len; // Calculate how many characters need to be added
-        if (pos + missing_len < max_len - 1) { // Check for buffer overflow prevention
-            std::strcpy(&buffer[pos], matches[0] + prefix_len); // Append only the missing characters to the buffer
-            pos += missing_len; // Move the cursor position forward
-            redraw_line(buffer); // Refresh the terminal line to show the completed word
+    // Use file_prefix for argument completion and token for commands
+    int active_prefix_len = is_command ? token_len : std::strlen(file_prefix);
+
+    if (match_count == 1) {
+        int missing_len = std::strlen(matches[0]) - active_prefix_len;
+        if (pos + missing_len < max_len - 1) {
+            std::strcpy(&buffer[pos], matches[0] + active_prefix_len);
+            pos += missing_len;
+            redraw_line(buffer);
         }
-    } else { // If there are multiple matches, calculate the Longest Common Prefix (LCP)
-        int lcp_len = std::strlen(matches[0]); // Assume the first match is the longest possible common prefix
-        for (int i = 1; i < match_count; i++) { // Loop through all other matches
-            int j = 0; // Initialize character comparison index
-            int current_len = std::strlen(matches[i]); // Get length of the current match being compared
-            while (j < lcp_len && j < current_len && matches[0][j] == matches[i][j]) { // Compare character by character
-                j++; // Advance index while characters match
+    } else {
+        int lcp_len = std::strlen(matches[0]);
+        for (int i = 1; i < match_count; i++) {
+            int j = 0;
+            int current_len = std::strlen(matches[i]);
+            while (j < lcp_len && j < current_len && matches[0][j] == matches[i][j]) {
+                j++;
             }
-            lcp_len = j; // Update the LCP length to where the mismatch occurred
+            lcp_len = j;
         }
 
-        if (lcp_len > prefix_len) { // If the shared LCP is longer than what the user typed
-            int missing_len = lcp_len - prefix_len; // Calculate how many shared characters can be added
-            if (pos + missing_len < max_len - 1) { // Prevent buffer overflow
-                std::strncpy(&buffer[pos], matches[0] + prefix_len, missing_len); // Append the shared characters
-                pos += missing_len; // Update cursor tracker
-                buffer[pos] = '\0'; // Manually null-terminate the updated buffer
-                redraw_line(buffer); // Redraw the terminal to show the extended prefix
+        if (lcp_len > active_prefix_len) {
+            int missing_len = lcp_len - active_prefix_len;
+            if (pos + missing_len < max_len - 1) {
+                std::strncpy(&buffer[pos], matches[0] + active_prefix_len, missing_len);
+                pos += missing_len;
+                buffer[pos] = '\0';
+                redraw_line(buffer);
             }
-        } else { // If the user has already typed the full LCP (requires double tab to display options)
-            write(STDOUT_FILENO, "\n", 1); // Move to a new line below the prompt
-            sort_matches(matches, match_count); // Alphabetize the matches array using custom bubble sort
-            
-            for (int i = 0; i < match_count; i++) { // Loop through all sorted matches
-                write(STDOUT_FILENO, matches[i], std::strlen(matches[i])); // Print the match to the screen
-                write(STDOUT_FILENO, "  ", 2); // Print two spaces as separation padding
+        } else {
+            write(STDOUT_FILENO, "\n", 1);
+            sort_matches(matches, match_count);
+
+            for (int i = 0; i < match_count; i++) {
+                write(STDOUT_FILENO, matches[i], std::strlen(matches[i]));
+                write(STDOUT_FILENO, "  ", 2);
             }
-            write(STDOUT_FILENO, "\n", 1); // Print a final newline after listing all options
-            redraw_line(buffer); // Redraw the prompt and the current command state seamlessly below the list
+            write(STDOUT_FILENO, "\n", 1);
+            redraw_line(buffer);
         }
     }
 }
