@@ -40,7 +40,10 @@ char** tokenize(char* str, const char* delim, int& token_count) {
     while (*read_ptr != '\0') {
         // toggle quote state, but DO NOT skip the character so it is printed
         if (is_space_delim && *read_ptr == '"') {
-            in_quotes = !in_quotes; // flip the boolean flag
+            in_quotes = !in_quotes;
+            read_ptr++;
+            if(token_start == nullptr) token_start = write_ptr;
+            continue;
         }
 
         // if we hit a delimiter and we are NOT safely inside quotes
